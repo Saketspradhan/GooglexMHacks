@@ -1,5 +1,5 @@
 from django import forms
-from .content.Itinerary.myapp.models import SurveyAnswers
+from .models import SurveyAnswers
 
 class SurveyForm(forms.ModelForm):
     class Meta:
