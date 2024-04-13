@@ -1,4 +1,3 @@
-# Logic for 5 Question Form
 
 from django import forms
 from .content.Itinerary.myapp.models import SurveyAnswers
