@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Image Processed</h1>
+<p>Output: {{ output_text }}</p>
+<a href="{% url 'routes' %}">Try another image</a>
+{% endblock %}
