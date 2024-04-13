@@ -33,9 +33,18 @@ def handle_uploaded_image(image):
 
   return processed_text
 
+def survey_view(request):
+    if request.method == 'POST':
+        form = SurveyForm(request.POST)
+        if form.is_valid():
+            # Save the form data to the session
+            request.session['survey_response'] = form.cleaned_data
+            # Redirect to the itinerary generation view
+            return redirect('generate_itinerary')
+    else:
+        form = SurveyForm()
 
-
-
+    return render(request, 'survey.html', {'form': form})
 
 
 def generate_itinerary(request):
