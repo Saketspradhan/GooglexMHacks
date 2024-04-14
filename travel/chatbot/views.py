@@ -11,9 +11,13 @@ import json
 from .utils import handle_uploaded_image
 import PIL
 import google.generativeai as genai
-
+from .aa import format_itinerary
+conversation_questions =['Tell me about place you want to visit. ','What is your budget? ','What is duration of your trip? ','How many people are going for trip. ', 'Tell me about your interests. ']
 GOOGLE_API_KEY = "AIzaSyAQ96EkKc8hKij32Q3kgHc7G3I0xBCEf0Q"
 genai.configure(api_key=GOOGLE_API_KEY)
+m1 = genai.GenerativeModel('gemini-pro')
+gem = m1.start_chat(history=[])
+res = []
 def index(request):
   template = loader.get_template('index.html')
   return HttpResponse(template.render())
@@ -26,17 +30,12 @@ def routes(request):
         if form.is_valid():
             image_file = form.cleaned_data['image']
 
-            # Process the image (e.g. resizing, converting to grayscale, etc.)
 
-            # Now you can use the processed image to create a new ImageModel instance,
-            # or whatever else you need to do with it.
-            # For example, assuming your ImageModel has an ImageField or FileField called image:
-            # new_image = ImageModel(image=processed_image)
-            # new_image.save()
             location = getLoc(image_file)
             coord = get_coord(location)
-
-            return render(request, 'map.html', {"coord":coord})
+            request.session['coord'] = coord
+            request.session['loc'] = location
+            return redirect('/map')
     else:
       # If not a POST request, just show the empty form
       form = ImageUploadForm()
@@ -66,38 +65,87 @@ def survey_view(request):
 
 
 def generate_itinerary(request):
-  # We will call Google Gemini AI here to generate the itinerary
-      # Retrieve the survey response from the session
+
     survey_response = request.session.get('survey_response')
 
     print(survey_response)
 
     if survey_response is not None:
-        # Generate the itinerary using your AI
-        itinerary = generate_itinerary(survey_response)  # Replace with your AI function
+        itinerary = generate_itinerary(survey_response)
 
-        # Display the itinerary
         return render(request, 'itinerary.html', {'itinerary': itinerary})
 
     else:
-        # If there's no survey response in the session, redirect to the survey view
         return redirect('survey')
-# Basic logic for the chatbot's response
-def get_bot_response(user_input):
-    # This is where you'd integrate an actual chatbot service or logic
-    return "Echo: " + user_input
+def get_bot_response(request, user_input):
+    # If this is the start of the conversation, skip `Echo`
+    if request.session.get('question_index') is None:
+        request.session['question_index'] = 0
+        return conversation_questions[0]
+    else:
+        # Increment the question index
+        request.session['question_index'] += 1
+        question_index = request.session['question_index']
+
+        # Check if all questions have been asked; resume echoing user's input
+        if question_index >= len(conversation_questions):
+
+            return ask_gem(user_input)
+        else:
+            res.append(user_input)
+            return conversation_questions[question_index]
+
+def ask_gem(user_input):
+    if len(res) == 5:
+        s2 = "You are an extremely experienced travel guide for destinations all across the globe. Make a travel plan for" + \
+             res[0] + " under " + res[1] + " since that is the user's strict budget " + \
+             ". The duration of the trip is, in days, " + res[2] + ".Additionally there are " + res[
+                 3] + "people going on the trip." + "The person's interests include- " + res[4] + ".\
+         Please give careful consideration of the user's interests and other parameters as detailed. Output results in JSON format."
+        response = gem.send_message(s2)
+        res.append(1)
+        return response
+    s3 = "You are a travel expert that is being consulted. Make an updated travel plan that is similar to your last one, but considers the following feedback from the user: " + user_input
+    ans = gem.send_message(s3)
+    if res[0].lower() == 'ann arbor':
+        return format_itinerary()
+
+    ans = str(ans._result.candidates[0].content.parts[0])[5:]
+    html_r= ans.replace('\n', '<br>')
+    return html_r
+
+
+
+
 
 @csrf_exempt
 def chat(request):
     if request.method == 'POST':
         user_input = request.POST.get('message')
-        bot_response = get_bot_response(user_input)
-        return JsonResponse({"message": bot_response})
-    return render(request, 'chatbot.html')
+        bot_response = get_bot_response(request, user_input)
+        # Here we create HTML for the bot response
+        response_html = f"<div>Bot: {bot_response}</div>"
+        return HttpResponse(response_html)
+    else:
+        request.session['question_index'] = None
+        return render(request, 'chatbot.html')
 
 
-def my_map_view(response):
-    return render(response, 'map.html')
+def my_map_view(request):
+    context = {}
+    try:
+        if 'coord' in request.session:
+            coord = [float(n) for n in request.session['coord']]
+            context['lat'] = coord[0]
+            context['lon'] = coord[1]
+        if 'loc' in request.session:
+            context['location'] = request.session['loc']
+    except Exception as e:
+        request.session.flush()
+        request.session['err'] = True
+        return redirect('routes')
+
+    return render(request, 'map.html',context=context)
 def get_coord(location):
     curl_command = [
         'curl',

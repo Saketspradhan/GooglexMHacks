@@ -119,23 +119,34 @@
 
     <script>
     $(function(){
-        $('#send-message').on('click', function(e) {
-            var messageInput = $('#message-input');
-            var message = messageInput.val().trim();
-            var chatBox = $('#chat-box');
+    var chatBox = $('#chat-box');
+    var messageInput = $('#message-input');
+    var sendMessageButton = $('#send-message');
 
-            if (message) {
-                chatBox.addClass('waiting-response');
-                $.post('', {message: message}, function(data) {
-                    chatBox.removeClass('waiting-response');
-                    chatBox.append('<div>User: ' + message + '</div>');
-                    chatBox.append('<div>Bot: ' + data.message + '</div>');
-                });
+    sendMessageButton.on('click', function(e) {
+        e.preventDefault();
 
-                messageInput.val(''); // Clear input box after send
-            }
-        });
+        var message = messageInput.val().trim();
+        if (message) {
+            chatBox.append('<div>User: ' + message + '</div>');
+            messageInput.val('');
+            chatBox.scrollTop(chatBox.prop("scrollHeight"));
+
+            $.post('/chat/', {message: message}, function(responseHtml) {
+                // Directly insert the HTML response into the chat box
+                chatBox.append(responseHtml);
+                chatBox.scrollTop(chatBox.prop("scrollHeight"));
+            });
+        }
     });
+
+    // If you want to support sending messages with the enter key
+    messageInput.on('keypress', function(e) {
+        if (e.which === 13) {
+            sendMessageButton.click();
+        }
+    });
+});
     </script>
 </body>
 </html>
