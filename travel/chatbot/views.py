@@ -78,3 +78,7 @@ def chat(request):
         bot_response = get_bot_response(user_input)
         return JsonResponse({"message": bot_response})
     return render(request, 'chatbot.html')
+
+def my_map_view(request):
+    # Prepare context data if needed
+    return render(request, "map.html", {})
