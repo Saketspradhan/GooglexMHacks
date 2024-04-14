@@ -8,3 +8,5 @@ class SurveyAnswers(models.Model):
   group_size = models.IntegerField()
   pace = models.CharField(max_length = 10) #revisit for error handle
   budget = models.IntegerField()
+class ImageModel(models.Model):
+    image = models.ImageField(upload_to='images/')

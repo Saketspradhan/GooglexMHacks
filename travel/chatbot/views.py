@@ -5,7 +5,15 @@ from .forms import SurveyForm, ImageUploadForm
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+import subprocess
+from .models import ImageModel
+import json
+from .utils import handle_uploaded_image
+import PIL
+import google.generativeai as genai
 
+GOOGLE_API_KEY = "AIzaSyAQ96EkKc8hKij32Q3kgHc7G3I0xBCEf0Q"
+genai.configure(api_key=GOOGLE_API_KEY)
 def index(request):
   template = loader.get_template('index.html')
   return HttpResponse(template.render())
@@ -14,13 +22,21 @@ def routes(request):
 
     if request.method == 'POST':
         form = ImageUploadForm(request.POST, request.FILES)
+        print(form.errors)
+        if form.is_valid():
+            image_file = form.cleaned_data['image']
 
+            # Process the image (e.g. resizing, converting to grayscale, etc.)
 
+            # Now you can use the processed image to create a new ImageModel instance,
+            # or whatever else you need to do with it.
+            # For example, assuming your ImageModel has an ImageField or FileField called image:
+            # new_image = ImageModel(image=processed_image)
+            # new_image.save()
+            location = getLoc(image_file)
+            coord = get_coord(location)
 
-        output_text = handle_uploaded_image(request.FILES['file'])
-
-        # Redirect or show the result to the user
-        return render(request, 'result.html', {'output_text': output_text})
+            return render(request, 'map.html', {"coord":coord})
     else:
       # If not a POST request, just show the empty form
       form = ImageUploadForm()
@@ -79,6 +95,42 @@ def chat(request):
         return JsonResponse({"message": bot_response})
     return render(request, 'chatbot.html')
 
-def my_map_view(request):
-    # Prepare context data if needed
-    return render(request, "map.html", {})
+
+def my_map_view(response):
+    return render(response, 'map.html')
+def get_coord(location):
+    curl_command = [
+        'curl',
+        '-X',
+        'POST',
+        '-H',
+        'Content-Type: application/json',
+        '-d',
+        f'{{"location": "{location}"}}',
+        'https://saketspradhan--googlexmhacks-location-to-coordinates-loc-fd4653.modal.run'
+    ]
+    response = None
+    try:
+        output = subprocess.check_output(curl_command, stderr=subprocess.STDOUT, text=True)
+        last_line = output.strip().split('\n')[-1]
+
+        # Parse the last line as JSON to extract the coordinates
+        coordinates = json.loads(last_line)
+        latitude = coordinates[0]
+        longitude = coordinates[1]
+        response = [latitude,longitude]
+    except subprocess.CalledProcessError as e:
+        response = None
+
+    return response
+
+def getLoc(img):
+    model = genai.GenerativeModel(model_name='gemini-pro-vision')
+
+
+    #image = Image.open(BytesIO(aws_url_response.content))
+    image = PIL.Image.open(img)
+    prompt = "What is the address of the place in the image?"
+    model = genai.GenerativeModel('gemini-pro-vision')
+    response = model.generate_content([prompt, image])
+    return response.text

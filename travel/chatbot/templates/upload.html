@@ -58,7 +58,7 @@
   <form method="post" enctype="multipart/form-data" id="upload-form">
       {% csrf_token %}
       <label for="file-upload" class="upload-button" id="upload-label">+</label>
-      <input id="file-upload" class="hidden-input" type="file" name="file" onchange="fileSelected()">
+    <input id="file-upload" class="hidden-input" type="file" name="image" onchange="fileSelected()">
       <button type="button" class="submit-button" onclick="submitForm()">Submit</button>
   </form>
 </div>
