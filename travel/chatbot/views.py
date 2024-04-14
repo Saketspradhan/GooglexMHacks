@@ -12,8 +12,13 @@ from .utils import handle_uploaded_image
 import PIL
 import google.generativeai as genai
 from .aa import format_itinerary
+from dotenv import load_dotenv, dotenv_values 
+
+load_dotenv() 
+ 
+
 conversation_questions =['Tell me about place you want to visit. ','What is your budget? ','What is duration of your trip? ','How many people are going for trip. ', 'Tell me about your interests. ']
-GOOGLE_API_KEY = "AIzaSyAQ96EkKc8hKij32Q3kgHc7G3I0xBCEf0Q"
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 m1 = genai.GenerativeModel('gemini-pro')
 gem = m1.start_chat(history=[])
