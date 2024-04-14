@@ -11,7 +11,6 @@ import json
 from .utils import handle_uploaded_image
 import PIL
 import google.generativeai as genai
-from .aa import format_itinerary
 from dotenv import load_dotenv, dotenv_values 
 
 load_dotenv() 
@@ -112,8 +111,7 @@ def ask_gem(user_input):
         return response
     s3 = "You are a travel expert that is being consulted. Make an updated travel plan that is similar to your last one, but considers the following feedback from the user: " + user_input
     ans = gem.send_message(s3)
-    if res[0].lower() == 'ann arbor':
-        return format_itinerary()
+    
 
     ans = str(ans._result.candidates[0].content.parts[0])[5:]
     html_r= ans.replace('\n', '<br>')
